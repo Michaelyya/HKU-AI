@@ -74,31 +74,51 @@ class QLearningPacman(BasicPacman):
             'ghost_distance': 2.0,
             'ghost_nearby': -10.0,
         }
-        # Student implementation here
-        ##############################
+        next_pos = get_position(self.pos, action)
+        food_distances = [abs(next_pos[0] - food[0]) + abs(next_pos[1] - food[1]) for food in state.food]
+        if food_distances:
+            features['closest_food'] = min(food_distances)
+        else:
+            features['closest_food'] = 0
 
-        ##############################
+        ghost_distance = abs(next_pos[0] - state.ghost_pos[0]) + abs(next_pos[1] - state.ghost_pos[1])
+        features['ghost_distance'] = ghost_distance
+        features['ghost_nearby'] = 1 if ghost_distance <= 2 else 0
+    
         return features
 
     def get_q_value(self, state, action):
         """
         TODO: Compute Q(s,a) = Σ(feature * weight)
         """
-        # Student implementation here
-        #############################
+        features = self.get_features(state, action)
+        q= 0
         
-        #############################
-        return q_value
+        for feature, value in features.items():
+            q += value * self.weights[feature]
+        
+        return q
 
     def update(self, state, action, next_state, reward):
         """
         TODO: Implement Q-learning update rule:
         Q(s,a) += α * [r + γ * max_a' Q(s',a') - Q(s,a)]
         """
-        # Student implementation here
-        ###############################
+        q = self.get_q_value(state, action)
+        next_q = float('-inf')
+        next_actions = self.get_legal_actions(next_state)
         
-        ###############################
+        if next_actions:
+            next_q_values = [self.get_q_value(next_state, next_action) for next_action in next_actions]
+            next_q = max(next_q_values)
+        else:
+            next_q = 0
+        td_error = reward + self.gamma * next_q - q
+    
+        features = self.get_features(state, action)
+        for feature, value in features.items():
+            self.weights[feature] += self.alpha * td_error * value
+
 
     def get_action(self, state):
         """
@@ -110,10 +130,14 @@ class QLearningPacman(BasicPacman):
         if random.random() < self.epsilon:
             return random.choice(legal_actions)
 
-        # Student implementation here
-        #######################################    
-
-        ########################################
+        legal_actions = self.get_legal_actions(state)
+        if random.random() < self.epsilon:
+            return random.choice(legal_actions)
+        
+        q_values = {action: self.get_q_value(state, action) for action in legal_actions}
+        max_q = max(q_values.values())
+        best_actions = [action for action, q_value in q_values.items() if q_value == max_q]
+        
         return random.choice(best_actions)
     
     def stop_train(self):
@@ -132,13 +156,10 @@ def q_train(problem, episodes=500):
     Returns:
         Trained Pacman agent with learned Q-values
     """
-    # Initialize agent and training statistics
     pacman = QLearningPacman(problem['pacman'])
     stats = {'wins': 0, 'steps': []}
     
-    # Training loop with progress tracking
     for episode in range(episodes):
-        # Environment setup for each episode
         walls = problem['walls']
         food = set(problem['food'])
         ghost_pos = problem['ghost']
@@ -146,8 +167,6 @@ def q_train(problem, episodes=500):
         
         step_count = 0
         episode_active = True
-        
-        # Single episode execution (max 1000 steps to prevent infinite loops)
         while episode_active and step_count < 1000:
             current_state = GameState(walls, food, ghost_pos)
             

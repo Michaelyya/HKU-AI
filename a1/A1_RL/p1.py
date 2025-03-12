@@ -57,10 +57,8 @@ class BasicPacman:
         TODO: a simple random choice
         return action
         """
-        # Student implementation here
-        ###############################
-        
-        ###############################
+        legal_actions = self.get_legal_actions(state)
+        action = random.choice(legal_actions)
         return action
 
 
@@ -69,10 +67,7 @@ class BasicPacman:
         TODO: update position according to the action
         return the update position
         """
-        # Student implementation here
-        ###############################
-        
-        ###############################
+        self.pos = get_position(self.pos, action)
         return self.pos
 
 
@@ -81,6 +76,7 @@ def run_game(walls, food, ghost_pos, pacman, seed):
     step = 0
 
     while True:
+        # print(output)
         state = GameState(walls, food, ghost_pos)
 
         # Pacman action
