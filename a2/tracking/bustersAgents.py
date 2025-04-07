@@ -137,17 +137,31 @@ class GreedyBustersAgent(BustersAgent):
     ########### ########### ###########
 
     def chooseAction(self, gameState: busters.GameState):
-        """
-        First computes the most likely position of each ghost that has
-        not yet been captured, then chooses an action that brings
-        Pacman closest to the closest ghost (according to mazeDistance!).
-        """
-        pacmanPosition = gameState.getPacmanPosition()
-        legal = [a for a in gameState.getLegalPacmanActions()]
+        pacmanPos = gameState.getPacmanPosition()
+        possibleMoves = gameState.getLegalPacmanActions()
         livingGhosts = gameState.getLivingGhosts()
-        livingGhostPositionDistributions = \
-            [beliefs for i, beliefs in enumerate(self.ghostBeliefs)
-             if livingGhosts[i+1]]
-        "*** YOUR CODE HERE ***"
-        raiseNotDefined()
-        "*** END YOUR CODE HERE ***"
+        livingGhostPositionDistributions = [b for i, b in enumerate(self.ghostBeliefs) if livingGhosts[i+1]]
+        
+        ghostPositions = []
+        for ghostBelief in livingGhostPositionDistributions:
+            mostLikelyPos = ghostBelief.argMax()
+            ghostPositions.append(mostLikelyPos)
+        
+        closestGhost = None
+        minDistance = float('inf')
+        for ghostPos in ghostPositions:
+            distance = self.distancer.getDistance(pacmanPos, ghostPos)
+            if distance < minDistance:
+                minDistance = distance
+                closestGhost = ghostPos
+        
+        bestMove = None
+        minMoveDistance = float('inf')
+        for move in possibleMoves:
+            newPos = Actions.getSuccessor(pacmanPos, move)
+            distance = self.distancer.getDistance(newPos, closestGhost)
+            if distance < minMoveDistance:
+                minMoveDistance = distance
+                bestMove = move
+        
+        return bestMove
